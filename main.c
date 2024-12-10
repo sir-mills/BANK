@@ -31,6 +31,54 @@ cJSON *parse_json_input(const char *input)
     return json;
 }
 
+int handle_create_account(const char *json_str)
+{
+    cJSON *json = parse_json_input(json_str);
+    if (json == NULL)
+        return -1;
+    cJSON *name_item = cJSON_GetObjectItem(json, "name");
+    cJSON *amount_item = cJSON_GetObjectItem(json, "initial_deposit");
+
+    if (!cJSON_IsString(name_item) || !cJSON_IsNumber(amount_item))
+    {
+        fprintf(stderr, "Invalid JSON Input Format\n");
+        cJSON_Delete(json);
+        return -1;
+    }
+    const char *name = name_item->valuestring;
+    double amount = amount_item->valuedouble;
+
+    int account_id;
+
+    int result = create_account(name, &account_id, amount);
+
+    cJSON *response = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(response, "account_id", account_id);
+    cJSON_AddNumberToObject(response, "status", result == SQLITE_OK ? 1 : 0);
+
+    char message[256];
+    if (result == SQLITE_OK)
+    {
+        snprintf(message, sizeof(message), "Account created, Account ID: %d", account_id);
+    }
+    else
+    {
+        snprintf(message, sizeof(message), "Failed to create account");
+    }
+
+    cJSON_AddStringToObject(response, "message", message);
+
+    char *response_str = cJSON_Print(response);
+    printf("%s\n", response_str);
+
+    free(response_str);
+    cJSON_Delete(response);
+    cJSON_Delete(json);
+
+    return result;
+}
+
 int main(void)
 {
     if (init_database() != SQLITE_OK)
@@ -43,23 +91,21 @@ int main(void)
     char name[100];
     int account_id;
     double amount;
+    char json_input[512];
 
     while (1)
     {
         display_menu();
         scanf("%d", &choice);
+        getchar();
 
         switch (choice)
         {
         case 1:
-            printf("Enter name: ");
-            scanf("%s", name);
-            printf("Enter initial deposit: ");
-            scanf("%lf", &amount);
-            if (create_account(name, &account_id, amount) == SQLITE_OK)
-            {
-                printf("Account created successfully! Account ID: %d\n", account_id);
-            }
+            printf("Enter Account Details: ");
+            fgets(json_input, sizeof(json_input), stdin);
+
+            handle_create_account(json_input);
             break;
 
         case 2:
