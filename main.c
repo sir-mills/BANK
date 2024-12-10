@@ -79,6 +79,186 @@ int handle_create_account(const char *json_str)
     return result;
 }
 
+int handle_deposit(const char *json_str)
+{
+    cJSON *json = parse_json_input(json_str);
+    if (json == NULL)
+        return -1;
+
+    cJSON *account_id_item = cJSON_GetObjectItem(json, "account_id");
+    cJSON *amount_item = cJSON_GetObjectItem(json, "amount");
+
+    if (!cJSON_IsNumber(account_id_item) || !cJSON_IsNumber(amount_item))
+    {
+        fprintf(stderr, "invalid format enter a number\n");
+        cJSON_Delete(json);
+        return -1;
+    }
+
+    int account_id = account_id_item->valueint;
+    double amount = amount_item->valuedouble;
+
+    int result = deposit(account_id, amount);
+
+    cJSON *response = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(response, "account_id", account_id);
+    cJSON_AddNumberToObject(response, "status", result == SQLITE_OK ? 1 : 0);
+
+    char message[256];
+    if (result == SQLITE_OK)
+    {
+        snprintf(message, sizeof(message), "Account ID: %d, Deposit: %d Successful ", account_id, amount);
+    }
+    else
+    {
+        snprintf(message, sizeof(message), "Account ID: %d Failed to deposit", account_id);
+    }
+
+    cJSON_AddStringToObject(response, "message", message);
+
+    char *response_str = cJSON_Print(response);
+    printf("%s\n", response_str);
+
+    free(response_str);
+    cJSON_Delete(response);
+    cJSON_Delete(json);
+
+    return result;
+}
+
+int handle_withdraw(const char *json_str)
+{
+    cJSON *json = parse_json_input(json_str);
+    if (json == NULL)
+        return -1;
+
+    cJSON *account_id_item = cJSON_GetObjectItem(json, "account_id");
+    cJSON *amount_item = cJSON_GetObjectItem(json, "amount");
+
+    if (!cJSON_IsNumber(account_id_item) || !cJSON_IsNumber(amount_item))
+    {
+        fprintf(stderr, "invalid format enter a number\n");
+        cJSON_Delete(json);
+        return -1;
+    }
+
+    int account_id = account_id_item->valueint;
+    double amount = amount_item->valuedouble;
+
+    int result = withdraw(account_id, amount);
+
+    cJSON *response = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(response, "account_id", account_id);
+    cJSON_AddNumberToObject(response, "status", result == SQLITE_OK ? 1 : 0);
+
+    char message[256];
+    if (result == SQLITE_OK)
+    {
+        snprintf(message, sizeof(message), "Account ID: %d, Withdraw : %d Successful", account_id, amount);
+    }
+    else
+    {
+        snprintf(message, sizeof(message), "Account ID: %d Failed to withdraw", account_id);
+    }
+
+    cJSON_AddStringToObject(response, "message", message);
+
+    char *response_str = cJSON_Print(response);
+    printf("%s\n", response_str);
+
+    free(response_str);
+    cJSON_Delete(response);
+    cJSON_Delete(json);
+
+    return result;
+}
+
+int handle_get_balance(const char *json_str)
+{
+    cJSON *json = parse_json_input(json_str);
+    if (json == NULL)
+        return -1;
+    cJSON *account_id_item = cJSON_GetObjectItem(json, "account_id");
+
+    if (!cJSON_IsNumber(account_id_item))
+    {
+        fprintf(stderr, "invalid format enter a number\n");
+        cJSON_Delete(json);
+        return -1;
+    }
+    int account_id = account_id_item->valueint;
+    double balance = get_balance(account_id);
+
+    cJSON *response = cJSON_CreateObject();
+    cJSON_AddNumberToObject(response, "account_id", account_id);
+    cJSON_AddNumberToObject(response, "status", 1);
+
+    char message[256];
+    if (1)
+    {
+        sprintf(message, "Account ID: &d, Balance : %lf", account_id, balance);
+    }
+    else
+    {
+        sprintf(message, "Account ID: %d, Balance : %lf", account_id, balance);
+    }
+    cJSON_AddStringToObject(response, "message", message);
+
+    char *response_str = cJSON_Print(response);
+    printf("%s\n", response_str);
+
+    free(response_str);
+    cJSON_Delete(response);
+    cJSON_Delete(json);
+
+    return 0;
+}
+
+int handle_close_account(const char *json_str)
+{
+    cJSON *json = parse_json_input(json_str);
+    if (json == NULL)
+        return -1;
+    cJSON *account_id_item = cJSON_GetObjectItem(json, "account_id");
+
+    if (!cJSON_IsNumber(account_id_item))
+    {
+        fprintf(stderr, "invalid format enter a number\n");
+        cJSON_Delete(json);
+        return -1;
+    }
+    int account_id = account_id_item->valueint;
+
+    int result = close_account(account_id);
+
+    cJSON *response = cJSON_CreateObject();
+
+    cJSON_AddNumberToObject(response, "account_id", account_id);
+    cJSON_AddNumberToObject(response, "status", result == SQLITE_OK ? 1 : 0);
+
+    char message[256];
+    if (result == SQLITE_OK)
+    {
+        sprintf(message, "Account ID: %d, closed successfully", account_id);
+    }
+    else
+    {
+        sprintf(message, "Account ID: %d, Failed to close aza", account_id);
+    }
+    cJSON_AddStringToObject(response, "message", message);
+
+    char *response_str = cJSON_Print(response);
+    printf("%s\n", response_str);
+
+    free(response_str);
+    cJSON_Delete(response);
+    cJSON_Delete(json);
+
+    return result;
+}
+
 int main(void)
 {
     if (init_database() != SQLITE_OK)
@@ -110,37 +290,24 @@ int main(void)
 
         case 2:
             printf("Enter account ID: ");
-            scanf("%d", &account_id);
-            printf("Enter deposit amount: ");
-            scanf("%lf", &amount);
-            if (deposit(account_id, amount) == SQLITE_OK)
-            {
-                printf("Deposit successful!\n");
-            }
+            fgets(json_input, sizeof(json_input), stdin);
+            handle_deposit(json_input);
             break;
         case 3:
             printf("Enter account ID: ");
-            scanf("%d", &account_id);
-            printf("Enter Withdrawal Amount:");
-            scanf("%lf", &amount);
-            if (withdraw(account_id, amount) == SQLITE_OK)
-            {
-                printf("Withdrawal successful !\n");
-            }
+            fgets(json_input, sizeof(json_input), stdin);
+            handle_withdraw(json_input);
             break;
         case 4:
             printf("Enter Account ID: ");
-            scanf("%d", &account_id);
-            printf("Balance: %lf\n", get_balance(account_id));
+            fgets(json_input, sizeof(json_input), stdin);
+            handle_get_balance(json_input);
             break;
 
         case 5:
             printf("Enter Account ID: ");
-            scanf("%d", &account_id);
-            if (close_account(account_id) == SQLITE_OK)
-            {
-                printf("Account closed successfully!\n");
-            }
+            fgets(json_input, sizeof(json_input), stdin);
+            handle_close_account(json_input);
             break;
 
         case 6:
