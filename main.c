@@ -198,7 +198,7 @@ int handle_get_balance(const char *json_str)
     char message[256];
     if (1)
     {
-        sprintf(message, "Account ID: &d, Balance : %lf", account_id, balance);
+        sprintf(message, "Account ID: &d, Balance : $ %lf", account_id, balance);
     }
     else
     {
@@ -268,7 +268,7 @@ int main(void)
     }
 
     int choice;
-    char name[100];
+    // char name[100];
     int account_id;
     double amount;
     char json_input[512];
@@ -282,7 +282,7 @@ int main(void)
         switch (choice)
         {
         case 1:
-            printf("Enter Account Details: ");
+            printf("Enter Account Name and Initial Deposit: ");
             fgets(json_input, sizeof(json_input), stdin);
 
             handle_create_account(json_input);
